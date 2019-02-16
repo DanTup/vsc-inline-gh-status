@@ -1,0 +1,33 @@
+{
+	"name": "inline-gh-status",
+	"description": "Show inline status decorations for GH issue URLs in VS Code",
+	"version": "0.0.1",
+	"publisher": "DanTup",
+	"license": "MIT",
+	"engines": {
+		"vscode": "^1.31.0"
+	},
+	"repository": {
+		"url": "https://github.com/DanTup/vsc-inline-gh-status"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"*"
+	],
+	"main": "./out/extension.js",
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "echo Compiling... && tsc -p ./",
+		"lint": "tslint src/**/*.ts -t verbose",
+		"watch": "tsc -watch -p ./",
+		"postinstall": "node ./node_modules/vscode/bin/install"
+	},
+	"devDependencies": {
+		"@types/node": "^8.9.1",
+		"tslint": "^5.11.0",
+		"typescript": "^3.3.1",
+		"vscode": "^1.1.22"
+	}
+}

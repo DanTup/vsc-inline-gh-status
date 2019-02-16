@@ -1,0 +1,31 @@
+{
+	"extends": [
+		"tslint:recommended"
+	],
+	"linterOptions": {
+		"exclude": [
+			"node_modules/**"
+		]
+	},
+	"rules": {
+		"indent": [
+			true,
+			"tabs"
+		],
+		"semicolon": [
+			true,
+			"always"
+		],
+		"curly": false,
+		"quotemark": [
+			true,
+			"double"
+		],
+		"no-empty": [
+			true,
+			"allow-empty-catch"
+		],
+		"ordered-imports": true,
+		"interface-name": false
+	}
+}

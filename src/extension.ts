@@ -64,7 +64,7 @@ async function updateDecorations(): Promise<void> {
 					after: {
 						backgroundColor: isOpen ? "#2cbe4e" : "#cb2431",
 						color: "#ffffff",
-						contentText: isOpen ? "Open" : "Closed",
+						contentText: isOpen ? "(Open)" : "(Closed)",
 						fontWeight: "600",
 						margin: "0 0 0 5px",
 					},

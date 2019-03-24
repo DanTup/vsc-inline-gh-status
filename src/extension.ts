@@ -6,6 +6,13 @@ const cacheDurationMs = 1000 * 60 * 60 * 24; // 24 hours
 // a class that takes this in constructor ?
 let context: vs.ExtensionContext;
 
+// TODO: Add ability to mark a URL, something like:
+// WHEN-CLOSED: {gh url}
+// that will write into the WarningProblems view when the issue is closed
+// maybe with context menu fix for forever ignoring, or snoozing for x days
+// (by adding the data into extension storage)
+// Will need to scan whole project for this?
+
 let updateDecorationsTimer: NodeJS.Timer | undefined;
 const githubUrlDecoration = vs.window.createTextEditorDecorationType({
 	rangeBehavior: vs.DecorationRangeBehavior.ClosedClosed,
@@ -17,6 +24,8 @@ export function activate(ctx: vs.ExtensionContext) {
 	vs.window.onDidChangeActiveTextEditor(triggerUpdateDecorations, null, context.subscriptions);
 	triggerUpdateDecorations();
 
+	// TODO: Handle updates, but debounce for a few seconds and only scan
+	// the modified lines...
 	// vscode.workspace.onDidChangeTextDocument(event => {
 	// 	if (activeEditor && event.document === activeEditor.document) {
 	// 		triggerUpdateDecorations();
@@ -66,6 +75,8 @@ async function updateDecorations(): Promise<void> {
 			// TODO: ...
 		}
 	}
+	// TODO: Support immediately showing cached labels even while the
+	// web requests are in-flight for the others? Maybe show (?) as a placeholder?
 	editor.setDecorations(githubUrlDecoration, decorations);
 }
 
@@ -91,6 +102,7 @@ function cacheItem<T>(key: string, item: CachedData<T>): void {
 	context.globalState.update(key, item);
 }
 
+// TODO: Can we batch these to save API calls?
 function getIssueFromGitHubApi(owner: string, repo: string, issue: number): Promise<GitHubIssue> {
 	return new Promise<GitHubIssue>((resolve, reject) => {
 		const options: https.RequestOptions = {

@@ -1,13 +1,19 @@
 import * as https from "https";
 import * as vs from "vscode";
 
+const cacheDurationMs = 1000 * 60 * 60 * 24; // 24 hours
+// TODO: This is dirty (will get worse with strictNulls), move everything out to
+// a class that takes this in constructor ?
+let context: vs.ExtensionContext;
+
 let updateDecorationsTimer: NodeJS.Timer | undefined;
 const githubUrlDecoration = vs.window.createTextEditorDecorationType({
 	rangeBehavior: vs.DecorationRangeBehavior.ClosedClosed,
 
 });
 
-export function activate(context: vs.ExtensionContext) {
+export function activate(ctx: vs.ExtensionContext) {
+	context = ctx;
 	vs.window.onDidChangeActiveTextEditor(triggerUpdateDecorations, null, context.subscriptions);
 	triggerUpdateDecorations();
 
@@ -63,7 +69,29 @@ async function updateDecorations(): Promise<void> {
 	editor.setDecorations(githubUrlDecoration, decorations);
 }
 
-function getIssue(owner: string, repo: string, issue: number): Promise<GitHubIssue> {
+async function getIssue(owner: string, repo: string, issue: number): Promise<GitHubIssue> {
+	const key = `issue/${owner}/${repo}/${issue}`;
+	const cachedItem = await getCachedItem<GitHubIssue>(key);
+	console.info(cachedItem ? `Got ${key} from cache` : `Item ${key} not cached`);
+	if (cachedItem && cachedItem.cachedDate > Date.now() - cacheDurationMs) {
+		console.info(`Using cache for ${key}`);
+		return cachedItem.item;
+	}
+	console.info(`Cache for ${key} is stale, fetching from web...`);
+	const liveItem = await getIssueFromGitHubApi(owner, repo, issue);
+	cacheItem(key, new CachedData(liveItem, Date.now()));
+	return liveItem;
+}
+
+function getCachedItem<T>(key: string): CachedData<T> | undefined {
+	return context.globalState.get(key);
+}
+
+function cacheItem<T>(key: string, item: CachedData<T>): void {
+	context.globalState.update(key, item);
+}
+
+function getIssueFromGitHubApi(owner: string, repo: string, issue: number): Promise<GitHubIssue> {
 	return new Promise<GitHubIssue>((resolve, reject) => {
 		const options: https.RequestOptions = {
 			headers: {
@@ -97,11 +125,27 @@ function getHover(issue: GitHubIssue) {
 	if (issue.labels && issue.labels.length) {
 		lines.push(`${issue.labels.map((l) => l.name).join(", ")}`);
 	}
-	// TODO: This
-	lines.push(`**Updated:** x days ago...`);
+	const dateString = getDateString(Date.parse(issue.updated_at));
+
+	lines.push(`**Updated:** ${dateString}`);
 	lines.push("\n---\n");
 	lines.push(`${issue.body}`);
 	return lines.join("\n");
+}
+
+function getDateString(date: number) {
+	const now = new Date(Date.now());
+	const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+	const msAgo = endOfToday - date;
+	const daysAgo = Math.floor(msAgo / (1000 * 60 * 60 * 24));
+
+	if (daysAgo === 0) {
+		return "today";
+	} else if (daysAgo === 1) {
+		return "yesterday";
+	} else {
+		return `${daysAgo} days ago`;
+	}
 }
 
 interface GitHubIssue {
@@ -111,4 +155,8 @@ interface GitHubIssue {
 	state: "open" | "closed";
 	title: string;
 	updated_at: string;
+}
+
+class CachedData<T> {
+	constructor(public readonly item: T, public readonly cachedDate: number) { }
 }
